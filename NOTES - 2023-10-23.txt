@@ -1,0 +1,185 @@
+Setup: mv db-2023-10-16.sqlite3 to db.sqlite3
+
+11. Admin interface
+
+...
+
+11d) Enhance the display of Flight object:
+
+class FlightAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "duration")
+    list_display = ("origin", "destination", "duration")
+
+admin.site.register(Flight, FlightAdmin)
+
+ ******** 12. create an app
+
+-- airpline/urls.py:
+
+from django.urls import include, path
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("flights/", include("flights.urls")),
+]
+
+-- flights/urls.py (need to create):
+from . import views
+from django.urls import path
+
+App_name = “flights”
+urlpatterns = [
+    path("", views.index, name="index"),
+]
+
+-- flights/views.py
+from .models import Flight
+def index(request):
+    return render(request, "flights/index.html", {
+        "flights": Flight.objects.all()
+    })
+
+-- flights/templates/flights/layout.html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.css">
+        <title>Flights</title>
+    </head>
+    <body>
+        {% block body %}
+        {% endblock %}
+    </body>
+</html>
+
+--- flights/templates/flights/index.html
+{% extends "flights/layout.html" %}
+
+{% block body %}
+
+    <h1>Flights</h1>
+    <ul>
+        {% for flight in flights %}
+            <li>
+                Flight {{ flight.id }}: {{ flight.origin }} to {{ flight.destination }}
+            </li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}
+
+12e) see data in app
+
+
+******** 13. Show flight detail in app
+
+13a) flights/urls.py:
+
+    path("<int:flight_id>", views.flight, name="flight"),
+
+13b) templates/flights/index.html:
+
+                <a href="{% url 'flight' flight.id %}">
+                    Flight {{ flight.id }}: {{ flight.origin }} to {{ flight.destination }}
+                </a>
+
+13c)  flights/views.py:
+
+def flight(request, flight_id):
+    flight = Flight.objects.get(id=flight_id)
+    return render(request, "flights/flight.html", {
+        "flight": flight
+    })
+
+13d) flights/templates/fights/flight.html:
+
+{% extends "flights/layout.html" %}
+{% block body %}
+<h1>Flight {{ flight.id }}</h1>
+<ul>
+    <li>Origin: {{ flight.origin }}</li>
+    <li>Destination: {{ flight.destination }}</li>
+    <li>Duration: {{ flight.duration }}</li>
+</ul>
+<a href="{% url 'flights:index' %}">Back to Full List</a>
+{% endblock %}
+
+RUN APP AND SEE THAT YOU CAN CLICK ON FLIGHT
+
+13e) replace flighs/views.py with check for bogus ID:
+
+from django.http import Http404
+
+def flight(request, flight_id):
+    try:
+        flight = Flight.objects.get(id=flight_id)
+    except Flight.DoesNotExist:
+        raise Http404("Flight not found.")
+    return render(request, "flights/flight.html", {
+        "flight": flight
+    })
+
+Can simplify with:
+
+   flight = get_object_or_404(Flight, id=flight_id)
+
+from django.shortcuts import get_object_or_404
+def flight(request, flight_id):
+    flight = get_object_or_404(Flight, id=flight_id)
+    return render(request, "flights/flight.html", {"flight": flight})
+
+And can add a 404.html
+
+
+******** 14. Add Passenger
+
+14a) models.py:
+
+class Passenger(models.Model):
+    first = models.CharField(max_length=64)
+    last = models.CharField(max_length=64)
+    flights = models.ManyToManyField(Flight, blank=True, related_name="passengers")
+
+    def __str__(self):
+        return f"{self.first} {self.last}"
+
+
+14b) admin.py
+
+admin.site.register(Passenger) 
+
+-> add some passengers/flights
+
+14c) admin.py:
+
+class PassengerAdmin(admin.ModelAdmin):
+    filter_horizontal = ("flights",)
+admin.site.register(Passenger, PassengerAdmin) 
+
+-> add some passengers/flights
+
+IN ADMIN PANEL, DON”T KNOW HOW TO DISPLAY THE PASSENGES ON A FLIGHT. EASY TO SHOW THE FLIGHTS FOR A PASSENGER, AS DONE HERE
+
+14d) views.py - add passengers to context:
+
+def flight(request, flight_id):
+    try:
+        flight = Flight.objects.get(id=flight_id)
+    except Flight.DoesNotExist:
+        raise Http404("Flight not found.")
+    return render(request, "flights/flight.html", {
+        "flight": flight,
+        "passengers": flight.passengers.all()
+    })
+
+
+14e) add to flight.html:
+
+<h2>Passengers</h2>
+
+<ul>
+    {% for passenger in passengers %}
+        <li>{{ passenger }}</li>
+    {% empty %}
+        <li>No passengers on this flight.</li>
+    {% endfor %}
+</ul>

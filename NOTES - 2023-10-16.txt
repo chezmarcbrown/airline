@@ -1,0 +1,153 @@
+1. project airline, app flights
+
+setup 
+
+django-admin startproject airline .
+python manage.py startapp flights
+settings.py -- add app flights
+
+2. flights/models.py
+
+class Flight(models.Model):
+    origin = models.CharField(max_length = 64)
+    destination = models.CharField(max_length = 64)
+    duration = models.IntegerField()
+
+3. No db yet: create some migratrions, and then apply the migrations
+
+python manage.py makemigrations
+
+Look at migrations file...
+
+python manage.py migrate 
+
+
+4. ls => db.sqlite3
+
+
+5. tableplus,but python better
+
+python manage.py shell
+
+from flights.models import Flight
+
+f = Flight(origin="New York",destination = "London", duration=415)
+f.save()
+
+f = Flight(origin="Shanghai",destination = "Paris", duration=760)
+f.save()
+
+Flight.objects.all()
+Flight.object.all().first()  .last()
+
+
+6. Give human readable name to flight object
+
+    def __str__(self):
+        return f"{self.id} : {self.origin} to {self.destination}"
+
+flights = Flight.objecst.all().first() 
+flight = flights.first()
+flight.id
+flight.origin
+
+*** NEED TO REMOVE EXISTING Flights
+manage dbshell
+delete from flights_flight ;
+ 
+
+
+7. CREATE Airport
+class Airport(models.Model):
+    code = models.CharField(max_length=3)
+    city = models.CharField(max_length=64)
+
+    def __str__(self):
+        return f"{self.city} ({self.code})"
+
+
+8. Change Flight: 
+class Flight(models.Model):
+    origin = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="departures")
+    destination = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="arrivals")
+    duration = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.id} : {self.origin} to {self.destination}"
+
+
+9. Now, need to change db...
+
+** 10/16/2023: Do the change in 2 steps: First, rename Flights to Flights0; Second, create a new Flights
+
+python manage.py makemigrations
+python manage.py migrate 
+
+
+10. back to shell...
+
+from flights.models import Airport, Flight
+
+create airports...
+
+jfk = Airport(code= ‘JFK’, city=’New York’)
+jfk.save()
+lhr = Airport(code='LHR', city='London')
+lhr.save()
+cdg = 
+nrt =
+
+
+f = Flight(origin=jfk, destination=lhr, duration=415)
+f.save();
+f
+f.origin
+f.origin.city
+f.origin.arrivals.all()
+f.origin.departures.all()
+
+******** 10. Create a flight in python shell
+
+from flights.models import Airport, Flight
+jfk = Airport(code="JFK", city="New York")
+jfk.save()
+lhr = Airport(code="LHR", city="London")
+lhr.save()
+f=Flight(origin=jfk, destination=lhr, duration=450)
+f.save()
+
+lookup airport -
+Airport.objects.all()
+Airport.objects.filter(city="New York")
+Airport.objects.filter(code="JFK")
+Airport.objects.filter(city="New York").first()
+Airport.objects.get("New York")
+
+jfk = Airport.objects.get("New York")
+cdg=Airport(code="CDG", city="Paris")
+cdg.save()
+f = Flight(origin=jfk, destination=cdg, duration=435)
+f.save()
+
+jfk.departures.all()
+cdg.arrivals.all()
+
+11. Admin interface
+
+11a) createsuperuser
+
+11b) admin.py
+
+from .models import Airport, Flight
+admin.site.register(Airport)
+admin.site.register(Flight)
+
+11c) run admin
+
+11d) enhance the Flight:
+
+class FlightAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "duration")
+   list_display = ("origin", "destination", "duration")
+
+admin.site.register(Flight, FlightAdmin)

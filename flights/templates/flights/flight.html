@@ -1,0 +1,22 @@
+
+{% extends "flights/layout.html" %}
+ 
+{% block main_contents %}
+       <h1>Flight #{{ flight.id }}</h1>
+       <p>Starting from: {{ flight.origin }}</p>
+       <p>Ending at: {{ flight.destination }}</p>
+       <p>Duration of {{ flight.duration }} minutes</p>
+
+       <h2>
+        The passengers on this flight:</h2>
+        <ul>
+            {% for p in passengers %}
+                <li>{{ p }}</li>
+            {% empty %}
+                No passengers have booked this flight
+            {% endfor %}
+        </ul>
+
+    
+        <h3><a href="{% url 'flights:index' %}">Go back to full list of flights</a></h3>
+{% endblock %}
