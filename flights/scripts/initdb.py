@@ -10,7 +10,7 @@ def run():
             print(f'Processing row: {row}')
             code = row['code']
             city = row['city']
-            # if not Airport.objects.exists(code=code, city=city):
+            # if not Airport.objects.filter(code=code, city=city).exists():
             #     a=Airport(code=code, city=city)
             #     a.save()
             Airport.objects.get_or_create(code=code, city=city)
