@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Flight1(models.Model):
     origin = models.CharField(max_length=64)
@@ -29,7 +30,12 @@ class Passenger(models.Model):
     # The `flights` field in the `Passenger` model is a `ManyToManyField` that establishes a
     # many-to-many relationship between the `Passenger` and `Flight` models. This means that a
     # passenger can be associated with multiple flights, and a flight can have multiple passengers.
-    flights = models.ManyToManyField(Flight, blank=True, related_name='passengers')
+    flights = models.ManyToManyField(Flight, blank=True, related_name='passengers', through='Booking')
     
     def __str__(self):
         return f'{self.first} {self.last}'
+    
+class Booking(models.Model):
+    flight = models.ForeignKey(Flight, on_delete=models.CASCADE)
+    passenger = models.ForeignKey(Passenger, on_delete=models.CASCADE)
+    booker = models.ForeignKey(User, on_delete=models.CASCADE)

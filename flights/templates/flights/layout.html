@@ -4,6 +4,14 @@
         <title>Flights</title>
     </head>
     <body>
+        <header>
+            {% if user.is_authenticated %}
+              Welcome <strong>{{ user.username }}!</strong>
+              <a href="{% url 'users:logout' %}">Logout</a>
+            {% else %}
+              <a href="{% url 'users:login' %}">Login</a>
+            {% endif %}
+        </header>
         {% block main_contents %}
         {% endblock %}
     </body>

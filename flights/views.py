@@ -1,7 +1,7 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from django.http import Http404
 
-from .models import Flight, Passenger
+from .models import Flight, Passenger, Booking
 
 def index(request):
     return render(request, "flights/index.html",
@@ -36,5 +36,10 @@ def book(request, flight_id):
         p_id = request.POST["passenger"]
         p = Passenger.objects.get(pk=int(p_id))
         flight = get_object_or_404(Flight, id=flight_id)
+        
+        
+        b = Booking(passenger=p, flight=flight, booker=request.user)
+        b.save()
+        
         p.flights.add(flight)
     return redirect('flights:flight', flight_id=flight_id)
