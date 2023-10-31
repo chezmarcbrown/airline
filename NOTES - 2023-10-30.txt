@@ -1,0 +1,257 @@
+SQL to see table - manage dbshell, tablePlus, DBBrowswerForSQLite
+
+SQL to list passengers on a flight -
+
+select f.id, o.code, d.code, p.first, p.last from flights_flight f 
+join flights_airport o on o.id = f.origin_id
+join flights_airport d on d.id = f.destination_id
+join flights_passenger_flights pf on pf.flight_id = f.id
+join flights_passenger p on p.id = pf.passenger_id
+where f.id = 1
+******** 17. User login, logout, register
+Classdemo-2023-users
+
+
+python manage.py startapp users
+airline/settings.py - add users app, after flights
+airline/urls.py - add path('users/', include('users.urls'))
+users/urls.py - normal stuff:
+
+from django.urls import path
+
+
+from . import views
+
+
+urlpatterns = [
+   path("", views.index, name="index"),
+   path("login", views.login_view, name="login"),
+   path("logout", views.logout_view, name="logout")
+]
+
+
+b) views.py – index function
+
+from django.shortcuts import redirect, render
+def index(request):
+   if not request.user.is_authenticated:
+       return redirect("login")
+   else:
+       return render(request, 'index.html')
+
+
+
+c) templates/users/layout.html -> standard
+
+d) tempates/users/index.html
+
+
+
+
+17b. Login view, Login.html
+
+when redirect to index fails, add app_name=”users” in urls.py)
+
+Add to layout.html: 
+
+       <style>
+           label, input {
+               display: block;
+               margin-bottom: 20px;
+               margin-top: 5px;
+           }
+       </style>
+
+views.py:
+
+def login_view(request):
+   if request.method == "POST":
+       username = request.POST["username"]
+       password = request.POST["password"]
+       user = authenticate(request, username=username, password=password)
+       if user is not None:
+           login(request, user)
+           return redirect("users:index")
+       else:
+           return render(request, "users/login.html", {
+               "message": "Invalid credentials."
+           })
+   else:
+       return render(request, "users/login.html")
+
+
+Login.html
+
+{% extends "users/layout.html" %}
+
+{% block body %}
+
+   <h1>Log In</h1>
+
+   {% if message %}
+       <div>{{ message }}</div>
+   {% endif %}
+
+   <form action="{% url 'users:login' %}" method="post">
+       {% csrf_token %}
+       <label>Username:</label><input type="text" name="username" placeholder="Username">
+       Password:<input type="password" name="password" placeholder="Password">
+       <input type="submit" value="Login">
+   </form>
+
+   <p>
+       Don't have an account? <a href="{% url 'users:register' %}">Register here.</a>
+   </p>
+{% endblock %}
+
+17b. Logout view
+def logout_view(request):
+   logout(request)
+   return render(request, "users/login.html", {
+       "message": "Logged out."
+   })
+
+17c. Register html: 
+
+{% extends "users/layout.html" %}
+
+
+{% block body %}
+
+
+<h1>Register</h1>
+
+
+{% if message %}
+<div>{{ message }}</div>
+{% endif %}
+
+
+<form action="{% url 'users:register' %}" method="post">
+   {% csrf_token %}
+   <input autofocus type="text" name="username" placeholder="Username">
+     <input type="password" name="password" placeholder="Password">
+   <input type="password" name="confirmation" placeholder="Confirm Password">
+   <input type="submit" value="Register">
+</form>
+
+
+<p>
+   Already have an account? <a href="{% url 'users:login' %}">Log In here.</a>
+</p>
+
+
+{% endblock %}
+
+17c. Register view - do it first with no error checking
+
+from django.db import IntegrityError
+from django.contrib.auth.models import User
+
+def register(request):
+   if request.method == "POST":
+       username = request.POST["username"]
+       
+       # Ensure password matches confirmation
+       password = request.POST["password"]
+       confirmation = request.POST["confirmation"]
+       if password != confirmation:
+           return render(request, "users/register.html", {
+               "message": "Passwords must match."
+           })
+
+       # Attempt to create new user
+       try:
+           user = User.objects.create_user(username, email, password)
+           user.save()
+       except IntegrityError:
+           return render(request, "users/register.html", {
+               "message": "Username already taken."
+           })
+       login(request, user)
+       return redirect("users:index")
+   else:
+       return render(request, "users/register.html")
+
+
+17c. Register view - do it first with no error checking
+
+
+17c. Register view -  user is case sensitive; probably a bad idea.
+
+
+******** 18. Add Authentication to the Booking Process
+
+In flights.html, surround Add Passenger with: 
+{% if request.user.is_authenticated %}
+
+Add to top of flights/layout.html:
+       <header>
+           {% if user.is_authenticated %}
+           Welcome <strong>{{ user.username }}!</strong>
+           <a href="{% url 'logout' %}">Log Out</a>
+           {% else %}
+           <a href="{% url 'login' %}">Log In</a>
+           {% endif %}
+           <hr>
+       </header>
+
+
+******** 19. Record user who did the booking
+
+Look at SQLite tools
+Look at table Passenger/Flight - this will be replaced by 
+
+
+The mapping table (passenger, flight) needs to store extra field, the person who did the booking.
+
+from django.contrib.auth.models import User
+class Booking(models.Model):
+   flight = models.ForeignKey(Flight, on_delete=models.CASCADE)
+   passenger = models.ForeignKey(Passenger, on_delete=models.CASCADE)
+   booker = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bookings")
+
+
+Replace in Pasenger:
+
+
+flights = models.ManyToManyField(Flight, blank=True, related_name="passengers", through='Booking')
+
+
+Makemigrations is OK; migrate fails. Delete old field, add new one. Makes sense, since we don’t know who did the booking. Could get fancier - save all the booking via db, restore.
+
+
+  operations = [
+       migrations.RemoveField(
+           model_name='passenger',
+           name='flights',
+       ),
+       migrations.AddField(
+           model_name='passenger',
+           name='flights',
+           field=models.ManyToManyField(blank=True, related_name='passengers', through='flights.Booking', to='flights.flight'),
+       ),
+
+
+
+
+Change the booking view
+
+
+def book(request, flight_id):
+   if request.method == "POST":
+       p = Passenger.objects.get(pk=request.POST["passenger"])
+       flight = Flight.objects.get(pk=flight_id)
+
+
+       b = Booking(passenger=p, flight=flight, booker=request.user)
+       b.save()
+       #p.flights.add(flight)
+       return redirect("flights:flight", flight_id=flight_id)
+
+
+Add some booking, but under different users 
+
+The html wants to show booker, but doesn’t have access to it from flight and passenger; either make custom tag in template or pass the info in. Rather than passing all passengers on this flight, pass in all Booking objects for this flight
+
+LEFT AS CHALLENGE FOR STUDENTS

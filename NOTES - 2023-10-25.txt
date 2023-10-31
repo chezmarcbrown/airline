@@ -1,0 +1,179 @@
+
+
+******** 15. Book flight for non-passenger
+
+15a) add to urls.py:
+
+   path("book/<int:flight_id>", views.book, name="book"),
+
+15a) flight.html:
+
+<h2>Add Passenger</h2>
+
+<form action="{% url 'flights:book' flight.id %}" method="post">
+    {% csrf_token %}
+    <select name="passenger">
+        {% for passenger in non_passengers %}
+            <option value="{{ passenger.id }}">{{ passenger }}</option>
+        {% endfor %}
+    </select>
+    <input type="submit">
+</form>
+
+
+15b) views.py:
+
+def flight(request, flight_id):
+    …
+    return render(request, "flights/flight.html", {
+        "flight": flight,
+        "passengers": flight.passengers.all(),
+        "non_passengers": Passenger.objects.exclude(flights=flight).all()
+    })
+
+from django.http import HttpResponseBadRequest
+def book(request, flight_id):
+    if request.method == "POST":
+        passenger = Passenger.objects.get(pk=int(request.POST["passenger"]))
+        flight = Flight.objects.get(pk=flight_id)
+        passenger.flights.add(flight)
+        return redirect("flight", flight_id=flight_id)
+
+
+from django.http import HttpResponseBadRequest
+def book(request, flight_id):
+    if request.method == "POST":
+        try:
+            passenger = Passenger.objects.get(pk=int(request.POST["passenger"]))
+            flight = Flight.objects.get(pk=flight_id)
+        except KeyError:
+            return HttpResponseBadRequest("Bad Request: no flight chosen")
+        except Flight.DoesNotExist:
+            return HttpResponseBadRequest("Bad Request: flight does not exist")
+        except Passenger.DoesNotExist:
+            return HttpResponseBadRequest("Bad Request: passenger does not exist")
+        passenger.flights.add(flight)
+    return redirect("flight", flight_id=flight_id)
+
+
+******** 16. initdb - goal is to load “seeddata” from one or more csv files
+
+Airports.csv
+
+Create flghts/seeddata/airports.csv
+code,city
+FAI,Fairbanks
+HOM,Homer
+
+
+
+
+
+pip install django-extensions
+Pip freeze >requirements.txt
+
+Add to settings.py:
+
+INSTALLED_APPS = [
+…
+‘django_extensons’,
+…
+
+Look at the extensions. 
+
+Runscript looks for python files in any scripts folder. 
+
+
+Add flights/scripts/__init__.py
+Add flights/scripts/initdb.py:
+
+import csv
+from flights.models import Airport
+
+
+AIRPORTS_FILENAME = "flights/seeddata/airports.csv"
+def run():
+   print(f'Opening file: {AIRPORTS_FILENAME}')
+   with open(AIRPORTS_FILENAME) as incsvfile:
+       reader = csv.DictReader(incsvfile)
+       for row in reader:
+           print(f'Processing row: {row}')
+           code = row['code']
+           city = row['city']
+           a=Airport(code=code, city=city)
+	    a.save()
+
+
+
+
+
+
+
+Run the script. 
+
+
+python manage.py runscript initdb
+
+Run script again. And duplicate entries arise!
+ Delete code=FAI,HOM from the database
+Add constraints to model: 
+code = models.CharField(max_length=3, unique=True)
+python manage.py makemigrations
+python manage.py migrate
+Run initdb twice - 3 approaches:
+			1. try/catch
+			2. if not Airport.objects.exists(code=code)...
+			3. Airport.objects.get_or_create(code=code, city=city)
+
+
+Can add flights:
+Create flights/seeddata//flights.csv
+
+
+origin,destination,duration
+ANC,FAI,120
+FAI,BOS,420
+FAI,HOM,145
+
+from flights.models import Flight
+FLIGHTS_FILENAME = "flights/seeddata/flights.csv"
+
+   print(f'Opening file: {FLIGHTS_FILENAME}')
+   with open(FLIGHTS_FILENAME) as incsvfile:
+       reader = csv.DictReader(incsvfile)
+       for row in reader:
+           print(f'Processing row: {row}')
+           o = Airport.objects.get(code=row['origin'])
+           d = Airport.objects.get(code=row['destination'])
+           duration = int(row['duration'])
+           Flight.objects.get_or_create(origin=o, destination=d, duration=duration)
+
+
+
+MOVIES
+
+1a) airline/settings.py - add movies app
+
+1b) also add:
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+2a) airline/urls.py - path('movies/', include('movies.urls')),
+
+2b) also add
+from django.conf import settings #add this
+from django.conf.urls.static import static #add this
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+3) Use pillow:
+(venv) pip install pillow
+(venv) pip freeze >requirements.txt
+
+Look at Models
+Look at scripts/loadmovies.py
+Run script
+Look at DB
+Run app - add a movie
+
+template/movies/home.html
+Forms.py/MovieForm()
+VIew.py/index()
