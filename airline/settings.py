@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'flights',
     'django_extensions',
     'movies',
+    'users',
 ]
 
 MIDDLEWARE = [
