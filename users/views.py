@@ -14,12 +14,14 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('users:index')
+            next_url = request.POST.get('next', 'users:index')
+            return redirect(next_url)
         else:
             return render(request, "users/login.html",
                           {"message": "Invalid credentials. Try again."})
     else:
-        return render(request, "users/login.html")
+        next_url = request.GET.get('next')
+        return render(request, "users/login.html", context={'next_url': next_url})
 
 def logout_view(request):
     logout(request)

@@ -6,6 +6,9 @@
     {% csrf_token %}
     Username: <input type="text" name="username" placeholder="Username">
     Password: <input type="password" name="password">
+    {% if next_url %}
+     <input type="hidden" name="next" value={{next_url}}>
+    {% endif %}
     <input type="submit" value="Login">
 <form>
 

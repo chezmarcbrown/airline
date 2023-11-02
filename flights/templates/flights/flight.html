@@ -10,8 +10,8 @@
        <h2>
         The passengers on this flight:</h2>
         <ul>
-            {% for p in passengers %}
-                <li>{{ p }}</li>
+            {% for b in bookings %}
+                <li>{{ b.passenger }} (Booked by {{b.booker}}) </li>
             {% empty %}
                 No passengers have booked this flight
             {% endfor %}

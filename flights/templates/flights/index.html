@@ -6,7 +6,11 @@
         <ul>
         {% for f in flights %}
             <li>
-                <a href="{% url 'flights:flight' f.id %}">Flight {{f.id}}: </a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'flights:flight' f.id %}">Flight {{f.id}}: </a>
+                {% else %}
+                    Flight {{f.id}}:    
+                {% endif %}
                 {{ f.origin }} to {{ f.destination }}</li>
         {% endfor %}
         </ul>

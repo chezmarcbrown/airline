@@ -22,12 +22,16 @@ def flight(request, flight_id):
                   { 'flight': flight,
                    'passengers': flight.passengers.all()})
 
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url = 'users:login')
 def flight(request, flight_id):
     flight = get_object_or_404(Flight, id=flight_id)
     np = Passenger.objects.all()
     print(np)
     return render(request, "flights/flight.html",
                   { 'flight': flight,
+                   'bookings': Booking.objects.filter(flight=flight),
                    'passengers': flight.passengers.all(),
                    'non_passengers': Passenger.objects.exclude(flights=flight).all()})
 
@@ -41,5 +45,5 @@ def book(request, flight_id):
         b = Booking(passenger=p, flight=flight, booker=request.user)
         b.save()
         
-        p.flights.add(flight)
+        #p.flights.add(flight)
     return redirect('flights:flight', flight_id=flight_id)
